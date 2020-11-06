@@ -10,7 +10,7 @@ using PurseApp.Repositories;
 
 namespace PurseApp.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/{purseId}/[controller]")]
     [ApiController]
     public class AccountController : ControllerBase
     {
@@ -36,7 +36,7 @@ namespace PurseApp.Controllers
             return Ok(account);
         }
 
-        [HttpGet("accounts/{purseId}")]
+        [HttpGet("accounts")]
         public async Task<ActionResult<IEnumerable<Account>>> GetAccounts(Guid purseId)
         {
             if ( await _purseRepository.GetPurse(purseId) == null)
@@ -44,7 +44,7 @@ namespace PurseApp.Controllers
             return Ok(await _accountRepository.GetAccounts(purseId));
         } 
 
-        [HttpPut]
+        [HttpPut("create")]
         public async Task<IActionResult> CreateAccount(Guid purseId,string currencyName,string accountName)
         {
             var purse = await _purseRepository.GetPurse(purseId); 
@@ -85,8 +85,8 @@ namespace PurseApp.Controllers
             return Ok();
         }
         
-        [HttpPost("transfermoney")]
-        public async Task<IActionResult> TransferMoney([FromQuery]Guid accountIdSource, [FromQuery]Guid accountIdDest,[FromQuery]decimal amount)
+        [HttpPost("transfermoney/{accountIdSource}")]
+        public async Task<IActionResult> TransferMoney([FromRoute]Guid accountIdSource, [FromQuery]Guid accountIdDest,[FromQuery]decimal amount)
         {
             //INFO: валюта amount = валюте sourceAccount
             if (amount <= 0)
@@ -125,6 +125,24 @@ namespace PurseApp.Controllers
                     return BadRequest("Не найден курс валют счета назначения");
             }
 
+            await _accountRepository.WithDrawMoney(accountSource.AccountId, amount);
+            var amountDest = CalculateAmountDestination(sourceAccountCurrencyInfo, destAccountCurrencyInfo, amount);
+            await _accountRepository.AddBalance(accountDestination.AccountId,amountDest);
+            
+            return Ok();
+        }
+        
+        [HttpDelete("delete/{accountId}")]
+        public async Task<IActionResult> RemoveAccount(Guid purseId, Guid accountId)
+        {
+            if (!await _purseRepository.IsPurseExists(purseId))
+                return NotFound();
+            await _accountRepository.RemoveAccount(accountId);
+            return Ok();
+        }
+
+        private decimal CalculateAmountDestination(ValCursValute sourceAccountCurrencyInfo, ValCursValute destAccountCurrencyInfo, decimal amount)
+        {
             var sourceAccRate = 1M;// Для случая с дефолтным счетом(рублевым)
             var sourceNominal = 1;
             if (sourceAccountCurrencyInfo != null)
@@ -140,18 +158,7 @@ namespace PurseApp.Controllers
                 destAccRate = Convert.ToDecimal(destAccountCurrencyInfo.Value );
                 destNominal = Convert.ToInt32(destAccountCurrencyInfo.Nominal);
             }
-            await _accountRepository.WithDrawMoney(accountSource.AccountId, amount);
-            var amountDest = amount * sourceAccRate / sourceNominal / destAccRate * destNominal ;
-            await _accountRepository.AddBalance(accountDestination.AccountId,amountDest);
-            
-            return Ok();
-        }
-        
-        [HttpDelete("delete/{accountId}")]
-        public async Task<IActionResult> RemoveAccount(Guid accountId)
-        {
-            await _accountRepository.RemoveAccount(accountId);
-            return Ok();
+            return amount * sourceAccRate / sourceNominal / destAccRate * destNominal ;
         }
     }
 }
