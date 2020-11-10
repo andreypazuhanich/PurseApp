@@ -25,7 +25,7 @@ namespace PurseApp.Repositories
 
         public async Task<Account> GetAccount(Guid accountId)
         {
-            return await _dbContext.Accounts.Include(s => s.Currency)
+            return await _dbContext.Accounts.Include(s => s.Currency).AsNoTracking()
                 .FirstOrDefaultAsync(s => s.AccountId == accountId);
         }
 
@@ -58,7 +58,8 @@ namespace PurseApp.Repositories
 
         public async Task WithDrawMoney(Guid accountId, decimal amount)
         {
-            var account = await _dbContext.Accounts.FirstOrDefaultAsync(s => s.AccountId == accountId);
+            var account = await _dbContext.Accounts.Include(s => s.Currency)
+                .FirstOrDefaultAsync(s => s.AccountId == accountId);
             if(account.Balance - amount < 0M)
                 throw new Exception("Недостаточно денежных средств");
             account.Balance -= amount;

@@ -23,7 +23,7 @@ namespace PurseApp
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddDbContext<PurseAppDbContext>(s =>
+            services.AddDbContext<PurseAppDbContext>(s => 
                 s.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IPurseRepository, PurseRepository>();
@@ -34,8 +34,9 @@ namespace PurseApp
             {
                 client.BaseAddress = new Uri("http://www.cbr.ru");
                 client.Timeout = TimeSpan.FromMinutes(1);
-            }) ;
+            });
             
+            services.AddHangfireService(Configuration.GetConnectionString("DefaultConnection"));
             services.AddControllers();
             services.AddSwaggerGen(s => s.SwaggerDoc("v1", new OpenApiInfo{Title = "Purse App V1", Version = "v1"}));
         }
@@ -53,7 +54,7 @@ namespace PurseApp
             app.UseRouting();
 
             app.UseAuthorization();
-            
+            app.UseHangfire();
             app.UseSwagger();
             app.UseSwaggerUI(s => s.SwaggerEndpoint("/swagger/v1/swagger.json", "v1"));
 

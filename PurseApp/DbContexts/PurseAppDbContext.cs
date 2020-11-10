@@ -1,17 +1,19 @@
 ﻿using System;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using PurseApp.Models;
 
 namespace PurseApp
 {
-    public class PurseAppDbContext : DbContext
+    public class PurseAppDbContext : IdentityDbContext
     {
         public PurseAppDbContext(DbContextOptions<PurseAppDbContext> options) : base(options) { }
         
-        public DbSet<User> Users { get; set; }
         public DbSet<Purse> Purses { get; set; }
         public DbSet<Account> Accounts { get; set; }
         public DbSet<Currency> Currencies { get; set; }
+        
+        public DbSet<Transaction> Transactions { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -10,7 +9,7 @@ using PurseApp.Repositories;
 
 namespace PurseApp.Controllers
 {
-    [Route("api/{purseId}/[controller]")]
+    [Route("api/[controller]")]
     [ApiController]
     public class AccountController : ControllerBase
     {
@@ -18,13 +17,15 @@ namespace PurseApp.Controllers
         private readonly IPurseRepository _purseRepository;
         private readonly ICurrencyRepository _currencyRepository;
         private readonly ICurrencyApi _currencyApi;
+        private readonly PurseAppDbContext _dbContext;
 
-        public AccountController(IAccountRepository accountRepository, IPurseRepository purseRepository, ICurrencyRepository currencyRepository, ICurrencyApi currencyApi)
+        public AccountController(IAccountRepository accountRepository, IPurseRepository purseRepository, ICurrencyRepository currencyRepository, ICurrencyApi currencyApi, PurseAppDbContext dbContext)
         {
             _accountRepository = accountRepository;
             _purseRepository = purseRepository;
             _currencyRepository = currencyRepository;
             _currencyApi = currencyApi;
+            _dbContext = dbContext;
         }
 
         [HttpGet("{accountId}")]
@@ -36,7 +37,7 @@ namespace PurseApp.Controllers
             return Ok(account);
         }
 
-        [HttpGet("accounts")]
+        [HttpGet("accounts/{purseId}")]
         public async Task<ActionResult<IEnumerable<Account>>> GetAccounts(Guid purseId)
         {
             if ( await _purseRepository.GetPurse(purseId) == null)
@@ -44,7 +45,7 @@ namespace PurseApp.Controllers
             return Ok(await _accountRepository.GetAccounts(purseId));
         } 
 
-        [HttpPut("create")]
+        [HttpPut("create/{purseId}")]
         public async Task<IActionResult> CreateAccount(Guid purseId,string currencyName,string accountName)
         {
             var purse = await _purseRepository.GetPurse(purseId); 
@@ -86,79 +87,28 @@ namespace PurseApp.Controllers
         }
         
         [HttpPost("transfermoney/{accountIdSource}")]
-        public async Task<IActionResult> TransferMoney([FromRoute]Guid accountIdSource, [FromQuery]Guid accountIdDest,[FromQuery]decimal amount)
+        public async Task<IActionResult> TransferMoney(Guid accountIdSource, [FromQuery]Guid accountIdDest,[FromQuery]decimal amount)
         {
-            //INFO: валюта amount = валюте sourceAccount
-            if (amount <= 0)
-                return BadRequest("Сумма перевода должна быть больше нуля");
-            
-            var accountSource = await _accountRepository.GetAccount(accountIdSource);
-            if (accountSource == null)
-                return BadRequest("Счет для списания денежных средств не существует");
-            
-            if (accountSource.Balance < amount)
-                return BadRequest("Недостаточно денежных средств для перевода");
-            
-            var accountDestination = await _accountRepository.GetAccount(accountIdDest);
-            if (accountDestination == null)
-                return BadRequest("Счет назначения перевода ДС не существует");
-            
-            var currenciesData = await _currencyApi.GetApi();
-            if (currenciesData == null)
-                return BadRequest("Не найдены курсы валют");
-            
-            ValCursValute sourceAccountCurrencyInfo = null;
-            if (!(accountSource.Currency.CurrencyId == (await _currencyRepository.GetDefaultCurrency()).CurrencyId))
+            var transaction = new Transaction
             {
-                sourceAccountCurrencyInfo = currenciesData.Valute
-                    .FirstOrDefault(s => s.CharCode == accountSource.Currency.Name);
-                if(sourceAccountCurrencyInfo == null)
-                    return BadRequest("Не найден курс валют для исходного счета");
-            }
-                
-            ValCursValute destAccountCurrencyInfo = null;
-            if (!(accountDestination.Currency.CurrencyId == (await _currencyRepository.GetDefaultCurrency()).CurrencyId))
-            {
-                destAccountCurrencyInfo = currenciesData.Valute
-                    .FirstOrDefault(s => s.CharCode == accountDestination.Currency.Name);
-                if ( destAccountCurrencyInfo == null)
-                    return BadRequest("Не найден курс валют счета назначения");
-            }
+                AccountSourceId = accountIdSource,
+                AccountDestinationId = accountIdDest,
+                Amount = amount
+            };
+            await _dbContext.Transactions.AddAsync(transaction);
+            await _dbContext.SaveChangesAsync();
 
-            await _accountRepository.WithDrawMoney(accountSource.AccountId, amount);
-            var amountDest = CalculateAmountDestination(sourceAccountCurrencyInfo, destAccountCurrencyInfo, amount);
-            await _accountRepository.AddBalance(accountDestination.AccountId,amountDest);
-            
             return Ok();
         }
         
-        [HttpDelete("delete/{accountId}")]
-        public async Task<IActionResult> RemoveAccount(Guid purseId, Guid accountId)
+        [HttpDelete("delete/{purseId}/{accountId}")]
+        public async Task<IActionResult> RemoveAccount([FromRoute]Guid purseId, [FromRoute]Guid accountId)
         {
             if (!await _purseRepository.IsPurseExists(purseId))
                 return NotFound();
             await _accountRepository.RemoveAccount(accountId);
             return Ok();
         }
-
-        private decimal CalculateAmountDestination(ValCursValute sourceAccountCurrencyInfo, ValCursValute destAccountCurrencyInfo, decimal amount)
-        {
-            var sourceAccRate = 1M;// Для случая с дефолтным счетом(рублевым)
-            var sourceNominal = 1;
-            if (sourceAccountCurrencyInfo != null)
-            {
-                sourceAccRate = Convert.ToDecimal(sourceAccountCurrencyInfo.Value);
-                sourceNominal = Convert.ToInt32(sourceAccountCurrencyInfo.Nominal);
-            }
-            
-            var destAccRate = 1M;// Для случая с дефолтным счетом(рублевым)
-            var destNominal = 1;
-            if (destAccountCurrencyInfo != null)
-            {
-                destAccRate = Convert.ToDecimal(destAccountCurrencyInfo.Value );
-                destNominal = Convert.ToInt32(destAccountCurrencyInfo.Nominal);
-            }
-            return amount * sourceAccRate / sourceNominal / destAccRate * destNominal ;
-        }
+        
     }
 }
