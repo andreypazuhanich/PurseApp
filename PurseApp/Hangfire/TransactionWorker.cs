@@ -36,7 +36,7 @@ namespace PurseApp.Hangfire
                         transaction.Amount);
                     transaction.Status = TransactionStatus.Successed;
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
                     transaction.Status = TransactionStatus.Failed;
                     throw;

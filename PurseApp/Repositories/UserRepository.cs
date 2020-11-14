@@ -1,41 +1,63 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
-using PurseApp.Models;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Configuration;
+using PurseApp.Helpers;
+using PurseApp.Models.Dto;
 
 namespace PurseApp.Repositories
 {
     public class UserRepository : IUserRepository
     {
-        private readonly PurseAppDbContext _dbContext;
+        private readonly UserManager<IdentityUser> _userManager;
+        private readonly SignInManager<IdentityUser> _signInManager;
+        private readonly IConfiguration _configuration;
+        private readonly IPurseRepository _purseRepository;
 
-        public UserRepository(PurseAppDbContext dbContext)
+        public UserRepository(UserManager<IdentityUser> userManager,SignInManager<IdentityUser> signInManager, IConfiguration configuration,IPurseRepository purseRepository)
         {
-            _dbContext = dbContext;
-        }
-        
-        public async Task<User> GetUserById(Guid userId)
-        {
-            if (await IsUserExists(userId))
-                return await _dbContext.Users.FirstOrDefaultAsync(s => s.UserId == userId);
-            return null;
-        }
-
-        public async Task<bool> IsUserExists(Guid userId)
-        {
-            return await _dbContext.Users.AnyAsync(s => s.UserId == userId);
+            _userManager = userManager;
+            _configuration = configuration;
+            _purseRepository = purseRepository;
+            _signInManager = signInManager;
         }
 
-        public async Task<User> CreateUser(string name,string inn)
+        public async Task<AuthenticateResponse> Authenticate(AuthenticateRequest userModel)
         {
-            if (!await _dbContext.Users.AnyAsync(s => s.INN == inn))
+            var signInResult = await _signInManager.PasswordSignInAsync(userModel.UserName, userModel.Password,
+                userModel.IsRemember, false);
+            if (signInResult.Succeeded)
             {
-                var user= new User{Name = name,INN = inn}; 
-                await _dbContext.Users.AddAsync(user);
-                await _dbContext.SaveChangesAsync();
-                return user;
+                var user = await _userManager.FindByNameAsync(userModel.UserName);
+                var token = _configuration.GenerateJwtToken(user);
+                return new AuthenticateResponse{Token = token,UserName = user.UserName};
             }
             return null;
+        }
+
+        public async Task<AuthenticateResponse> Register(RegisterRequest registerRequest)
+        {
+            var user = new IdentityUser {UserName = registerRequest.UserName, Email = registerRequest.Email};
+            var result = await _userManager.CreateAsync(user, registerRequest.Password);
+
+            if (result.Succeeded)
+            {
+                await _signInManager.SignInAsync(user, false);
+                await _purseRepository.CreatePurse(Guid.Parse(user.Id));
+                var token = _configuration.GenerateJwtToken(user);
+                return new AuthenticateResponse { UserName = user.UserName, Token = token};
+            }
+            return null;
+        }
+
+        public async Task DeleteUsers()
+        {
+            foreach (var user in _userManager.Users.ToList())
+            {
+                await _userManager.DeleteAsync(user);
+            }
         }
     }
 }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PurseApp.CurrencyIntegration;
 using PurseApp.Models;
@@ -11,20 +12,17 @@ namespace PurseApp.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class AccountController : ControllerBase
     {
         private readonly IAccountRepository _accountRepository;
         private readonly IPurseRepository _purseRepository;
-        private readonly ICurrencyRepository _currencyRepository;
-        private readonly ICurrencyApi _currencyApi;
         private readonly PurseAppDbContext _dbContext;
 
-        public AccountController(IAccountRepository accountRepository, IPurseRepository purseRepository, ICurrencyRepository currencyRepository, ICurrencyApi currencyApi, PurseAppDbContext dbContext)
+        public AccountController(IAccountRepository accountRepository, IPurseRepository purseRepository, PurseAppDbContext dbContext)
         {
             _accountRepository = accountRepository;
             _purseRepository = purseRepository;
-            _currencyRepository = currencyRepository;
-            _currencyApi = currencyApi;
             _dbContext = dbContext;
         }
 
@@ -52,9 +50,9 @@ namespace PurseApp.Controllers
             if(purse.Accounts.Any(s => s.Currency.Name == currencyName))
                 throw new Exception("Счет в такой валюте уже существует");
             
-            var account = await _accountRepository.CreateAccount(purseId, new Currency {Name = currencyName}, accountName);
+            var account = await _accountRepository.CreateAccount(purseId, new Currency { Name = currencyName }, accountName);
 
-            return Ok();
+            return RedirectToAction("GetAccountById","Account",new{ accountId = account.AccountId });
         }  
         
         [HttpPost("addmoney/{accountId}")]

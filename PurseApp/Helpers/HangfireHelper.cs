@@ -7,14 +7,6 @@ namespace PurseApp.Hangfire
 {
     public static class Entry
     {
-      
-        public static IServiceCollection AddHangfireService(this IServiceCollection serviceCollection, string hangfireDbConnectionString)
-        {
-            serviceCollection.AddHangfire(x => x.UseSqlServerStorage(hangfireDbConnectionString));
-            serviceCollection.AddTransient<TransactionWorker>();
-            return serviceCollection;
-        }
-
         public static IApplicationBuilder UseHangfire(this IApplicationBuilder app)
         {
             var dashBoardAddress = "/HangfireDashboard";

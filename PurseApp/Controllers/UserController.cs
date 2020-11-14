@@ -1,7 +1,14 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using PurseApp.Helpers;
 using PurseApp.Models;
+using PurseApp.Models.Dto;
 using PurseApp.Repositories;
 
 namespace PurseApp.Controllers
@@ -10,33 +17,51 @@ namespace PurseApp.Controllers
     [ApiController]
     public class UserController : ControllerBase
     {
-
         private readonly IUserRepository _userRepository;
-        private readonly IPurseRepository _purseRepository;
-        private readonly IAccountRepository _accountRepository;
-        private readonly ICurrencyRepository _currencyRepository;
-
-        private const string DefaultAccountName = "Рублевый счет";
         
-        public UserController(IUserRepository userRepository, IPurseRepository purseRepository, IAccountRepository accountRepository, ICurrencyRepository currencyRepository)
+        public UserController(IUserRepository userRepository)
         {
             _userRepository = userRepository;
-            _purseRepository = purseRepository;
-            _accountRepository = accountRepository;
-            _currencyRepository = currencyRepository;
+        }
+        
+        
+        [HttpPost]
+        [Route("register")]
+        public async Task<ActionResult<AuthenticateResponse>> Register(RegisterRequest registerRequest)
+        {
+            if (ModelState.IsValid)
+            {
+                var authenticateResponse = await _userRepository.Register(registerRequest);
+                if (authenticateResponse == null)
+                    return BadRequest();
+                return Ok(authenticateResponse);//TODO: return AuthenticateResponse только для тестов
+            }
+            return BadRequest();
+        }
+        
+        [HttpPost]
+        [Route("login")]
+        public async Task<ActionResult<AuthenticateResponse>> Login(AuthenticateRequest authenticateRequest)
+        {
+            if (ModelState.IsValid)
+            {
+                var response = await _userRepository.Authenticate(authenticateRequest);
+                if (response == null)
+                    return Unauthorized();
+                return Ok(response);//TODO: return AuthenticateResponse только для тестов
+            }
+            return BadRequest();
         }
 
-        [HttpPost]
-        public async Task<ActionResult<User>> CreateUser([FromQuery]string userName, [FromQuery]string inn)
+        /// <summary>
+        ///  для удобства очистки юзеров
+        /// </summary>
+        /// <returns></returns>
+        [HttpDelete]
+        public async Task<IActionResult> DeleteUsers()
         {
-            var user = await _userRepository.CreateUser(userName, inn);
-            if (user.Purses == null || !user.Purses.Any())
-            {
-                var purse =  await _purseRepository.CreatePurse(user.UserId);
-                var currency = await _currencyRepository.GetDefaultCurrency();
-                await _accountRepository.CreateAccount(purse.PurseId, currency, DefaultAccountName);
-            }
-            return Ok(user);
+            await _userRepository.DeleteUsers();
+            return Ok();
         }
     }
 }
