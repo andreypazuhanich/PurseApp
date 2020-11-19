@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using PurseApp.CurrencyIntegration;
+using PurseApp.AttributesExtension;
 using PurseApp.Models;
 using PurseApp.Repositories;
 
@@ -12,7 +12,7 @@ namespace PurseApp.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+    [AuthorizeExt]
     public class AccountController : ControllerBase
     {
         private readonly IAccountRepository _accountRepository;

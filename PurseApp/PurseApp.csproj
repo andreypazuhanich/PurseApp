@@ -26,5 +26,9 @@
       <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.8.0" />
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\PurseApp.DAL.EntityFramework\PurseApp.DAL.EntityFramework.csproj" />
+    </ItemGroup>
+
 
 </Project>

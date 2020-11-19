@@ -37,10 +37,6 @@ namespace PurseApp.Helpers
     
         public static string GenerateJwtToken(this IConfiguration configuration, IdentityUser user)
         {
-            // var identity = GetIdentity(user);
-            // if(identity == null)
-            //     throw new Exception("Пользователь не найден");
-            
             var claims = new List<Claim>
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.UserName),
@@ -54,20 +50,5 @@ namespace PurseApp.Helpers
             var jwt = new JwtSecurityToken(configuration["JwtIssuer"],configuration["JwtIssuer"], claims,null,expires,creds);
             return new JwtSecurityTokenHandler().WriteToken(jwt);
         }
-
-        // private static ClaimsIdentity GetIdentity(IdentityUser user)
-        // {
-        //     if (user == null)
-        //         return null;
-        //     
-        //     var claims = new List<Claim>
-        //     {
-        //         new Claim(JwtRegisteredClaimNames.Sub, user.UserName),
-        //         new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-        //         new Claim(ClaimTypes.NameIdentifier, user.Id)
-        //     };
-        //     
-        //     return new ClaimsIdentity(claims,"Token",ClaimsIdentity.DefaultNameClaimType,ClaimsIdentity.DefaultRoleClaimType);
-        // }
     }
 }

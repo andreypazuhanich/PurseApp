@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PurseApp.AttributesExtension;
 using PurseApp.Models;
@@ -16,23 +18,28 @@ namespace PurseApp.Controllers
     public class PurseController : ControllerBase
     {
         private readonly IPurseRepository _purseRepository;
-        
-        public PurseController(IPurseRepository purseRepository)
+        private readonly IMapper _mapper;
+
+        public PurseController(IPurseRepository purseRepository, IMapper mapper)
         {
             _purseRepository = purseRepository;
+            _mapper = mapper;
         }
         
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Purse>>> GetPurses(Guid userId)
         {
-            return Ok(await _purseRepository.GetPurses(userId));
+            var purses = await _purseRepository.GetPurses(userId);
+            if (purses == null)
+                return NoContent();
+            return Ok(purses);
         }
         
         [HttpGet("accounts")]
-        public async Task<ActionResult<IEnumerable<PurseBalanceDto>>> GetPursesBalance(Guid userId)
+        public async Task<ActionResult<IEnumerable<AccountBalance>>> GetPursesBalance(Guid userId)
         {
             var purses = (await _purseRepository.GetPurses(userId)).SelectMany(s => s.Accounts)
-                .Select(s => new PurseBalanceDto {AccountName = s.Name, Balance = s.Balance, Currency = s.Currency.Name});
+                .Select(s => _mapper.Map<AccountBalance>(s));
             return Ok(purses);
         }
 

@@ -1,5 +1,4 @@
 ﻿using System;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -12,7 +11,7 @@ namespace PurseApp.AttributesExtension
     {
         public void OnAuthorization(AuthorizationFilterContext context)
         {
-            var user = (IdentityUser)context.HttpContext.Items["User"];
+            var user = context.HttpContext.Items["User"];
             if(user == null)
                 context.Result = new JsonResult(new {message = "Unathorized"}){ StatusCode = StatusCodes.Status401Unauthorized };
         }

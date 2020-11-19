@@ -2,6 +2,10 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PurseApp", "PurseApp\PurseApp.csproj", "{C49A16A1-FCE6-417A-B23C-FB47C4A93C3F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PurseApp.DAL.EntityFramework", "PurseApp.DAL.EntityFramework\PurseApp.DAL.EntityFramework.csproj", "{F7EA8AA6-8229-47B8-B8B7-7E5385650D0A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PurseApp.Models", "PurseApp.Models\PurseApp.Models.csproj", "{32563334-0AAD-456E-8E24-1104E7B65BBB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -12,5 +16,13 @@ Global
 		{C49A16A1-FCE6-417A-B23C-FB47C4A93C3F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C49A16A1-FCE6-417A-B23C-FB47C4A93C3F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C49A16A1-FCE6-417A-B23C-FB47C4A93C3F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F7EA8AA6-8229-47B8-B8B7-7E5385650D0A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F7EA8AA6-8229-47B8-B8B7-7E5385650D0A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F7EA8AA6-8229-47B8-B8B7-7E5385650D0A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F7EA8AA6-8229-47B8-B8B7-7E5385650D0A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{32563334-0AAD-456E-8E24-1104E7B65BBB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{32563334-0AAD-456E-8E24-1104E7B65BBB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{32563334-0AAD-456E-8E24-1104E7B65BBB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{32563334-0AAD-456E-8E24-1104E7B65BBB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

@@ -2,6 +2,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
@@ -30,7 +31,7 @@ namespace PurseApp.Middlewares
             await _next(context);
         }
         
-        private async Task AttachUserToContext(HttpContext context, UserManager<IdentityUser> userManager, string token)
+        private void AttachUserToContext(HttpContext context, UserManager<IdentityUser> userManager, string token)
         {
             try
             {
@@ -47,7 +48,7 @@ namespace PurseApp.Middlewares
 
                 var jwtToken = (JwtSecurityToken)validatedToken;
                 var userId = jwtToken.Claims.First(s => s.Type == ClaimTypes.NameIdentifier).Value;
-                context.Items["User"] = await userManager.FindByIdAsync(userId);
+                context.Items["User"] = userId;
             }
             catch
             {

@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
+using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using PurseApp.Helpers;
 using PurseApp.Models;
@@ -18,39 +15,57 @@ namespace PurseApp.Controllers
     public class UserController : ControllerBase
     {
         private readonly IUserRepository _userRepository;
-        
-        public UserController(IUserRepository userRepository)
+        private readonly IMapper _mapper;
+        private readonly IConfiguration _configuration;
+
+        public UserController(IUserRepository userRepository, IMapper mapper, IConfiguration configuration)
         {
             _userRepository = userRepository;
+            _mapper = mapper;
+            _configuration = configuration;
         }
         
         
         [HttpPost]
         [Route("register")]
-        public async Task<ActionResult<AuthenticateResponse>> Register(RegisterRequest registerRequest)
+        public async Task<IActionResult> Register(RegisterRequest registerRequest)
         {
             if (ModelState.IsValid)
             {
-                var authenticateResponse = await _userRepository.Register(registerRequest);
-                if (authenticateResponse == null)
-                    return BadRequest();
-                return Ok(authenticateResponse);//TODO: return AuthenticateResponse только для тестов
+                try
+                {
+                    await _userRepository.Register(_mapper.Map<User>(registerRequest));
+                }
+                catch(Exception ex)
+                {
+                    return BadRequest(ex.Message);
+                }
+                return Ok();
             }
-            return BadRequest();
+
+            return ValidationProblem();
         }
         
         [HttpPost]
         [Route("login")]
-        public async Task<ActionResult<AuthenticateResponse>> Login(AuthenticateRequest authenticateRequest)
+        public async Task<ActionResult<string>> Login(AuthenticateRequest authenticateRequest)
         {
             if (ModelState.IsValid)
             {
-                var response = await _userRepository.Authenticate(authenticateRequest);
-                if (response == null)
-                    return Unauthorized();
-                return Ok(response);//TODO: return AuthenticateResponse только для тестов
+                try
+                {
+                    var user = _mapper.Map<User>(authenticateRequest);
+                    if (!await _userRepository.Authenticate(user))
+                        return Unauthorized();
+                    var token = _configuration.GenerateJwtToken(user);
+                    return Ok($"Bearer {token}"); //TODO: return token для удобства
+                }
+                catch(Exception ex)
+                {
+                    return BadRequest(ex.Message);
+                }
             }
-            return BadRequest();
+            return ValidationProblem();
         }
 
         /// <summary>
